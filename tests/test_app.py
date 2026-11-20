@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 from pathlib import Path
 
@@ -146,6 +148,9 @@ def test_index_route_renders_html(client) -> None:
     assert "static/js/app.js" in html
     assert 'id="author-search"' in html
     assert 'id="category-chips"' in html
+    assert 'id="copy-btn"' in html
+    assert "Copy to Clipboard" in html
+    assert 'id="export-csv-btn"' in html
 
 
 def test_api_random_quote_unfiltered(client) -> None:
@@ -221,3 +226,53 @@ def test_api_authors_endpoint(client) -> None:
     names = [author["name"] for author in authors]
     assert names == sorted(names, key=str.lower)
     assert sum(author["count"] for author in authors) == 100
+
+
+def test_api_export_csv_unfiltered(client) -> None:
+    response = client.get("/api/quotes/export.csv")
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+    assert response.headers["Content-Disposition"] == 'attachment; filename="famous-quotes.csv"'
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    assert reader.fieldnames == ["id", "text", "author", "categories"]
+    rows = list(reader)
+    assert len(rows) == 100
+    assert rows[0]["id"] == "1"
+    assert rows[0]["author"] == "Socrates"
+    assert rows[0]["categories"] == "Philosophy; Wisdom"
+
+
+def test_api_export_csv_filtered_by_author_and_category(client) -> None:
+    json_payload = client.get("/api/quotes?author=einstein&category=Creativity").get_json()
+    response = client.get("/api/quotes/export.csv?author=einstein&category=Creativity")
+    assert response.status_code == 200
+    assert (
+        response.headers["Content-Disposition"]
+        == 'attachment; filename="famous-quotes-einstein-creativity.csv"'
+    )
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert len(rows) == json_payload["total"]
+    assert len(rows) >= 2
+    for row in rows:
+        assert "einstein" in row["author"].lower()
+        assert "Creativity" in [cat.strip() for cat in row["categories"].split(";")]
+
+
+def test_api_export_csv_empty_matches_returns_header_only(client) -> None:
+    response = client.get("/api/quotes/export.csv?author=DoesNotExist123")
+    assert response.status_code == 200
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    assert reader.fieldnames == ["id", "text", "author", "categories"]
+    assert list(reader) == []
+
+
+def test_api_export_csv_sanitizes_filename(client) -> None:
+    response = client.get("/api/quotes/export.csv?author=../../etc/passwd&category=Science!")
+    assert response.status_code == 200
+    assert (
+        response.headers["Content-Disposition"]
+        == 'attachment; filename="famous-quotes-etc-passwd-science.csv"'
+    )

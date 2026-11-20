@@ -67,7 +67,7 @@
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
-            <span id="copy-btn-label">Copy Quote</span>
+            <span id="copy-btn-label">Copy to Clipboard</span>
           </button>
         </div>
 
@@ -124,15 +124,25 @@
 
     <!-- Hybrid Matching Quotes / Collection Browse Section -->
     <section class="results-section" aria-labelledby="results-heading">
-      <div id="unfiltered-browse-bar" class="browse-toggle-bar">
-        <button type="button" id="toggle-browse-btn" class="btn btn-ghost">
-          Browse all {{ total_quotes }} quotes
-        </button>
-      </div>
+      <div id="results-toolbar" class="results-toolbar is-centered">
+        <div id="results-header" class="results-header" hidden>
+          <h2 id="results-heading" class="results-heading">Matching Quotes</h2>
+          <p class="results-hint">Click any quote to feature it above, or click an author or category to refine.</p>
+        </div>
 
-      <div id="results-header" class="results-header" hidden>
-        <h2 id="results-heading" class="results-heading">Matching Quotes</h2>
-        <p class="results-hint">Click any quote to feature it above, or click an author or category to refine.</p>
+        <div class="results-toolbar-actions">
+          <button type="button" id="toggle-browse-btn" class="btn btn-ghost">
+            Browse all {{ total_quotes }} quotes
+          </button>
+          <button type="button" id="export-csv-btn" class="btn btn-secondary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span id="export-csv-label">Export to CSV ({{ total_quotes }})</span>
+          </button>
+        </div>
       </div>
 
       <div id="results-list" class="results-grid" hidden></div>

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import csv
+import io
+import re
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 from quotes_store import QuoteStore
 
@@ -20,6 +23,20 @@ def _parse_optional_int(raw_value: str) -> int | None:
         return int(cleaned)
     except ValueError:
         return None
+
+
+def _slugify_filename_part(value: str, max_length: int = 40) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return slug[:max_length].strip("-")
+
+
+def _build_export_filename(author: str, category: str) -> str:
+    parts = ["famous-quotes"]
+    for raw in (author, category):
+        slug = _slugify_filename_part(raw)
+        if slug:
+            parts.append(slug)
+    return f"{'-'.join(parts)}.csv"
 
 
 def create_app(data_path: Path | str | None = None) -> Flask:
@@ -71,6 +88,35 @@ def create_app(data_path: Path | str | None = None) -> Flask:
                     "category": category,
                 },
             }
+        )
+
+    @app.get("/api/quotes/export.csv")
+    def api_export_quotes_csv() -> Response:
+        author = request.args.get("author", "").strip()
+        category = request.args.get("category", "").strip()
+        matches = store.filter_quotes(author=author, category=category)
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["id", "text", "author", "categories"])
+        for quote in matches:
+            writer.writerow(
+                [
+                    quote["id"],
+                    quote["text"],
+                    quote["author"],
+                    "; ".join(quote["categories"]),
+                ]
+            )
+
+        filename = _build_export_filename(author, category)
+        return Response(
+            buffer.getvalue(),
+            status=200,
+            mimetype="text/csv; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+            },
         )
 
     @app.get("/api/categories")

@@ -343,6 +343,12 @@ body {
   border-color: var(--ink-muted);
 }
 
+.btn.is-copied {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .btn-ghost {
   background-color: transparent;
   border: 1px solid var(--border-strong);
@@ -537,17 +543,31 @@ body {
 
 /* Results / Browse Section */
 
-.browse-toggle-bar {
-  text-align: center;
+.results-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.results-toolbar.is-centered {
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.results-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .results-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .results-heading {
@@ -615,6 +635,7 @@ body {
 
 .quote-card-byline {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
@@ -626,6 +647,7 @@ body {
 
 .card-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
@@ -633,6 +655,9 @@ body {
 
 .card-action-btn {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   background: var(--bg-canvas);
   border: 1px solid var(--border-hairline);
   color: var(--ink-secondary);
@@ -645,10 +670,22 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
+.card-btn-icon {
+  width: 0.82rem;
+  height: 0.82rem;
+  flex-shrink: 0;
+}
+
 .card-action-btn:hover {
   background-color: var(--bg-subtle);
   border-color: var(--border-strong);
   color: var(--ink-primary);
+}
+
+.card-action-btn.is-copied {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .results-empty {
@@ -704,6 +741,16 @@ input:focus-visible {
 
   .hero-buttons {
     flex-direction: column;
+  }
+
+  .results-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .results-toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .btn {

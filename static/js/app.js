@@ -36,13 +36,17 @@
     activeFilterBar: document.getElementById("active-filter-bar"),
     activeFilterSummary: document.getElementById("active-filter-summary"),
     clearAllBtn: document.getElementById("clear-all-btn"),
-    unfilteredBrowseBar: document.getElementById("unfiltered-browse-bar"),
+    resultsToolbar: document.getElementById("results-toolbar"),
     toggleBrowseBtn: document.getElementById("toggle-browse-btn"),
+    exportCsvBtn: document.getElementById("export-csv-btn"),
+    exportCsvLabel: document.getElementById("export-csv-label"),
     resultsHeader: document.getElementById("results-header"),
     resultsHeading: document.getElementById("results-heading"),
     resultsList: document.getElementById("results-list"),
     resultsEmpty: document.getElementById("results-empty"),
   };
+
+  const copyResetTimers = new WeakMap();
 
   function hasActiveFilters() {
     return Boolean(state.authorQuery.trim() || state.selectedCategory);
@@ -97,24 +101,89 @@
     document.body.removeChild(textarea);
   }
 
-  async function handleCopyQuote(quote, labelEl, defaultLabel) {
+  function createClipboardIcon() {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("class", "card-btn-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("x", "9");
+    rect.setAttribute("y", "9");
+    rect.setAttribute("width", "13");
+    rect.setAttribute("height", "13");
+    rect.setAttribute("rx", "2");
+    rect.setAttribute("ry", "2");
+
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute(
+      "d",
+      "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+    );
+
+    svg.append(rect, path);
+    return svg;
+  }
+
+  async function handleCopyQuote(quote, buttonEl, labelEl, defaultLabel) {
     if (!quote) {
       return;
     }
+    const existingTimer = copyResetTimers.get(buttonEl);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+
     const formatted = `"${quote.text}" — ${quote.author}`;
     try {
       await copyText(formatted);
       labelEl.textContent = "Copied!";
+      buttonEl.classList.add("is-copied");
       announce(`Copied quote by ${quote.author} to clipboard.`);
-      window.setTimeout(() => {
+      const timerId = window.setTimeout(() => {
         labelEl.textContent = defaultLabel;
+        buttonEl.classList.remove("is-copied");
+        copyResetTimers.delete(buttonEl);
       }, 1800);
+      copyResetTimers.set(buttonEl, timerId);
     } catch {
       labelEl.textContent = "Copy failed";
-      window.setTimeout(() => {
+      buttonEl.classList.remove("is-copied");
+      const timerId = window.setTimeout(() => {
         labelEl.textContent = defaultLabel;
+        copyResetTimers.delete(buttonEl);
       }, 1800);
+      copyResetTimers.set(buttonEl, timerId);
     }
+  }
+
+  function handleExportCsv() {
+    if (dom.exportCsvBtn.disabled) {
+      return;
+    }
+    const queryString = buildQueryParams();
+    const url = queryString
+      ? `/api/quotes/export.csv?${queryString}`
+      : "/api/quotes/export.csv";
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    const count = hasActiveFilters()
+      ? state.matchingQuotes.length
+      : state.totalQuotes;
+    const noun = count === 1 ? "quote" : "quotes";
+    announce(`Exporting ${count} ${noun} to CSV.`);
   }
 
   function createCategoryTagButton(categoryName) {
@@ -313,10 +382,17 @@
 
     const copyCardBtn = document.createElement("button");
     copyCardBtn.type = "button";
-    copyCardBtn.className = "card-action-btn";
-    copyCardBtn.textContent = "Copy";
+    copyCardBtn.className = "card-action-btn card-copy-btn";
+    copyCardBtn.setAttribute(
+      "aria-label",
+      `Copy quote by ${quote.author} to clipboard`
+    );
+    copyCardBtn.title = "Copy quote to clipboard";
+    const copyCardLabel = document.createElement("span");
+    copyCardLabel.textContent = "Copy to Clipboard";
+    copyCardBtn.append(createClipboardIcon(), copyCardLabel);
     copyCardBtn.addEventListener("click", () =>
-      handleCopyQuote(quote, copyCardBtn, "Copy")
+      handleCopyQuote(quote, copyCardBtn, copyCardLabel, "Copy to Clipboard")
     );
 
     actions.append(featureBtn, copyCardBtn);
@@ -333,19 +409,33 @@
     return article;
   }
 
+  function renderExportButton() {
+    const filtered = hasActiveFilters();
+    const exportCount = filtered ? state.matchingQuotes.length : state.totalQuotes;
+    dom.exportCsvBtn.disabled = exportCount === 0;
+    dom.exportCsvLabel.textContent = `Export to CSV (${exportCount})`;
+    dom.exportCsvBtn.title = filtered
+      ? `Download ${exportCount} matching ${exportCount === 1 ? "quote" : "quotes"} as CSV`
+      : `Download all ${exportCount} quotes as CSV`;
+  }
+
   function renderResultsSection() {
     const filtered = hasActiveFilters();
 
     if (!filtered) {
-      dom.unfilteredBrowseBar.hidden = false;
+      dom.toggleBrowseBtn.hidden = false;
       dom.toggleBrowseBtn.textContent = state.showAllUnfiltered
         ? "Hide full collection"
         : `Browse all ${state.totalQuotes} quotes`;
     } else {
-      dom.unfilteredBrowseBar.hidden = true;
+      dom.toggleBrowseBtn.hidden = true;
     }
 
+    renderExportButton();
+
     const shouldShowList = filtered || state.showAllUnfiltered;
+    dom.resultsToolbar.classList.toggle("is-centered", !shouldShowList);
+
     if (!shouldShowList) {
       dom.resultsHeader.hidden = true;
       dom.resultsList.hidden = true;
@@ -506,7 +596,12 @@
     dom.randomBtn.addEventListener("click", fetchRandomQuote);
 
     dom.copyBtn.addEventListener("click", () => {
-      handleCopyQuote(state.currentQuote, dom.copyBtnLabel, "Copy Quote");
+      handleCopyQuote(
+        state.currentQuote,
+        dom.copyBtn,
+        dom.copyBtnLabel,
+        "Copy to Clipboard"
+      );
     });
 
     dom.featuredAuthor.addEventListener("click", () => {
@@ -552,6 +647,8 @@
       state.showAllUnfiltered = !state.showAllUnfiltered;
       applyFilters();
     });
+
+    dom.exportCsvBtn.addEventListener("click", handleExportCsv);
 
     document.addEventListener("keydown", (event) => {
       if (

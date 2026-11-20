@@ -7,8 +7,8 @@ A curated literary web application for discovering, searching, and browsing 100 
 - **Featured Random Quote Hero:** Displays a highlighted quote with a smooth transition, live matching-pool counter, and repeat avoidance (`exclude_id`) so requesting another random quote never repeats the current one when multiple quotes match.
 - **Combined Search & Category Filtering:** Case-insensitive author substring search (200ms debounced with `<datalist>` autocomplete) combined with toggleable category filter chips displaying per-category quote counts.
 - **Hybrid Browse & Results Grid:** Keeps the landing view focused with a **"Browse all 100 quotes"** toggle, and automatically expands into a responsive card grid whenever filters are active. Clicking a card promotes it into the hero; clicking any author or category tag refines the active filters.
-- **One-Click Copy & Accessibility:** Copies quotes formatted as `"<text>" — <author>` (Clipboard API with `execCommand` fallback), announces updates via `aria-live="polite"`, and respects `prefers-reduced-motion`.
-- **Keyboard Shortcuts:**
+- **One-Click Copy & CSV Export:** Every quote (hero and results cards) includes a **Copy to Clipboard** button (`"<text>" — <author>`, Clipboard API with `execCommand` fallback) with visual `"Copied!"` confirmation, plus an **Export to CSV** button that downloads either the full collection or currently filtered quotes as a `.csv` file.
+- **Accessibility & Keyboard Shortcuts:** Announces updates via `aria-live="polite"`, respects `prefers-reduced-motion`, and supports:
   - `R` — Load another random quote (when not focused in an input)
   - `Enter` — Apply the author search immediately
   - `Escape` — Clear the author search input
@@ -93,6 +93,7 @@ All API endpoints are read-only `GET` routes returning JSON.
 | `GET /` | — | Renders the HTML web application (`index.html`). |
 | `GET /api/quotes/random` | `author`, `category`, `exclude_id` | Returns one random matching quote and total `pool_size`. Returns `404` if no quotes match. |
 | `GET /api/quotes` | `author`, `category` | Returns all matching quotes (or all 100 if unfiltered), plus `total` and echoed `filters`. |
+| `GET /api/quotes/export.csv` | `author`, `category` | Downloads matching quotes (or all 100 if unfiltered) as a UTF-8 CSV file (`id,text,author,categories`). |
 | `GET /api/categories` | — | Returns alphabetically sorted categories with quote counts and `total_quotes`. |
 | `GET /api/authors` | — | Returns alphabetically sorted authors with quote counts. |
 
