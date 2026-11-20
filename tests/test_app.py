@@ -151,6 +151,17 @@ def test_index_route_renders_html(client) -> None:
     assert 'id="copy-btn"' in html
     assert "Copy to Clipboard" in html
     assert 'id="export-csv-btn"' in html
+    assert 'id="theme-toggle"' in html
+    assert 'role="switch"' in html
+
+
+def test_stylesheet_defines_dark_theme_root_overrides(client) -> None:
+    response = client.get("/static/css/styles.css")
+    assert response.status_code == 200
+    css = response.get_data(as_text=True)
+    assert ':root[data-theme="dark"]' in css
+    assert "--bg-canvas:" in css
+    assert "--ink-primary:" in css
 
 
 def test_api_random_quote_unfiltered(client) -> None:

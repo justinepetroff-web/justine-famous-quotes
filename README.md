@@ -8,6 +8,7 @@ A curated literary web application for discovering, searching, and browsing 100 
 - **Combined Search & Category Filtering:** Case-insensitive author substring search (200ms debounced with `<datalist>` autocomplete) combined with toggleable category filter chips displaying per-category quote counts.
 - **Hybrid Browse & Results Grid:** Keeps the landing view focused with a **"Browse all 100 quotes"** toggle, and automatically expands into a responsive card grid whenever filters are active. Clicking a card promotes it into the hero; clicking any author or category tag refines the active filters.
 - **One-Click Copy & CSV Export:** Every quote (hero and results cards) includes a **Copy to Clipboard** button (`"<text>" — <author>`, Clipboard API with `execCommand` fallback) with visual `"Copied!"` confirmation, plus an **Export to CSV** button that downloads either the full collection or currently filtered quotes as a `.csv` file.
+- **Light / Dark Mode Toggle:** A header toggle switch overrides `:root` CSS variables via `data-theme="dark"`, defaults to the OS preference (`prefers-color-scheme`), and persists your choice in `localStorage`.
 - **Accessibility & Keyboard Shortcuts:** Announces updates via `aria-live="polite"`, respects `prefers-reduced-motion`, and supports:
   - `R` — Load another random quote (when not focused in an input)
   - `Enter` — Apply the author search immediately

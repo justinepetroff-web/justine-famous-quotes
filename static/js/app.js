@@ -14,7 +14,11 @@
     debounceTimer: null,
   };
 
+  const THEME_STORAGE_KEY = "famous-quotes-theme";
+
   const dom = {
+    themeToggle: document.getElementById("theme-toggle"),
+    themeToggleLabel: document.getElementById("theme-toggle-label"),
     poolStatus: document.getElementById("pool-status"),
     heroQuoteContent: document.getElementById("hero-quote-content"),
     heroEmpty: document.getElementById("hero-empty"),
@@ -592,7 +596,81 @@
     applyFilters();
   }
 
+  function readSavedTheme() {
+    try {
+      const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+      return saved === "dark" || saved === "light" ? saved : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function applyTheme(theme, { persist = false, shouldAnnounce = false } = {}) {
+    const normalized = theme === "dark" ? "dark" : "light";
+    const isDark = normalized === "dark";
+
+    document.documentElement.setAttribute("data-theme", normalized);
+
+    if (dom.themeToggle) {
+      dom.themeToggle.setAttribute("aria-checked", String(isDark));
+      dom.themeToggle.setAttribute(
+        "aria-label",
+        isDark ? "Switch to light mode" : "Switch to dark mode"
+      );
+    }
+    if (dom.themeToggleLabel) {
+      dom.themeToggleLabel.textContent = isDark ? "Dark" : "Light";
+    }
+
+    if (persist) {
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, normalized);
+      } catch {
+        // Ignore storage errors (e.g., private browsing restrictions).
+      }
+    }
+
+    if (shouldAnnounce) {
+      announce(isDark ? "Switched to dark mode." : "Switched to light mode.");
+    }
+  }
+
+  function initTheme() {
+    const attrTheme = document.documentElement.getAttribute("data-theme");
+    const initialTheme =
+      attrTheme === "dark" || attrTheme === "light"
+        ? attrTheme
+        : readSavedTheme() ||
+          (window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+
+    applyTheme(initialTheme, { persist: false, shouldAnnounce: false });
+
+    if (window.matchMedia) {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQuery.addEventListener("change", (event) => {
+        if (!readSavedTheme()) {
+          applyTheme(event.matches ? "dark" : "light", {
+            persist: false,
+            shouldAnnounce: false,
+          });
+        }
+      });
+    }
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    applyTheme(next, { persist: true, shouldAnnounce: true });
+  }
+
   function bindEvents() {
+    if (dom.themeToggle) {
+      dom.themeToggle.addEventListener("click", toggleTheme);
+    }
     dom.randomBtn.addEventListener("click", fetchRandomQuote);
 
     dom.copyBtn.addEventListener("click", () => {
@@ -671,6 +749,7 @@
   }
 
   async function init() {
+    initTheme();
     bindEvents();
     try {
       const [categoriesRes, authorsRes, randomRes] = await Promise.all([
